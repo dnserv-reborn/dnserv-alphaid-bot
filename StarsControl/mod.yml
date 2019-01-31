@@ -1,0 +1,5 @@
+name: dnserv-starscontrol
+version: 0.9.0
+dependencies:
+  reactions-fix: ^1.0.0?
+main: ./StarsControl

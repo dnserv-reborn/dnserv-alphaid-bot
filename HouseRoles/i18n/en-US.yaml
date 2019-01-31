@@ -1,0 +1,56 @@
+DNSERV_HOUSEROLE_AUDITLOG@ASSIGN: "Assign House Role"
+
+DNSERV_HOUSEROLE_AUDITLOG@DEASSIGN: "Remove House Role"
+
+DNSERV_HOUSEROLE_ERR_NOHOUSE@SELF: |-
+  You are not in any of the HypeSquad houses, so weren't assigned a role.
+
+DNSERV_HOUSEROLE_ERR_NOHOUSE@OTHER: |-
+  {username} is not in any of the HypeSquad houses, so weren't assigned a role.
+
+DNSERV_HOUSEROLE_ERR_NOHOUSE@SELF: |-
+  It seems like we cannot currently determinate which house you belong to.
+
+  Try again a bit later or contact the bot administrator.
+
+DNSERV_HOUSEROLE_ERR_NOHOUSE@OTHER: |-
+  It seems like we cannot currently determinate which house {username} belongs to.
+
+  Try again a bit later or contact the bot administrator.
+
+DNSERV_HOUSEROLE_ERR_NOROLES@SELF: |-
+  You are already don't have any HypeSquad house roles.
+
+DNSERV_HOUSEROLE_ERR_NOROLES@OTHER: |-
+  {username} already doesn't have any HypeSquad house roles.
+
+DNSERV_HOUSEROLE_ERR_UNKNOWN: |-
+  Oops! Something definitely gone wrong while we tried to process your request.
+  
+  Try to call command a little later.
+
+DNSERV_HOUSEROLE_HOUSE_BALANCE: "Balance"
+
+DNSERV_HOUSEROLE_HOUSE_BRAVERY: "Bravery"
+
+DNSERV_HOUSEROLE_HOUSE_BRILLIANCE: "Brilliance"
+
+DNSERV_HOUSEROLE_HOUSE+JOINER: ", "
+
+DNSERV_HOUSEROLE_ASSIGNED@SELF: |-
+  You have been assigned {rolesCount, plural, =0 {no role} one {{houses} role} other {{houses} roles}}.
+
+DNSERV_HOUSEROLE_ASSIGNED@OTHER: |-
+  {username} have been assigned the {rolesCount, plural, =0 {no role} one {{houses} role} other {{houses} roles}}.
+
+DNSERV_HOUSEROLE_DEASSIGN@SELF: |-
+  Your house {rolesCount, plural, one {role of {houses} was} other {roles of {houses} were}} removed.
+
+DNSERV_HOUSEROLE_DEASSIGN@OTHER: |-
+  {username}'s {rolesCount, plural, one {role of {houses} was} other {roles of {houses} were}} removed.
+
+# '
+
+DNSERV_HOUSEROLE_UNKNOWN_SUBCMD: "Unknown subcommand. Available subcommands are — `assign` and `remove`."
+
+DNSERV_HOUSEROLE_UNKNOWN_PROPOSE: "We're unable to find the member you want assign role to, please check if mention is valid or use ID instead."

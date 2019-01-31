@@ -1,0 +1,29 @@
+---
+DNSERV_HOUSEROLE_AUDITLOG@ASSIGN: "Присвоение роли династии"
+DNSERV_HOUSEROLE_AUDITLOG@DEASSIGN: "Удаление роли династии"
+DNSERV_HOUSEROLE_ERR_NOHOUSE@SELF: |-
+  Похоже, в настоящее время мы не сможем определить к какой династии вы относитесь.
+
+  Повторите попытку чуть позже или свяжитесь с администратором бота.
+DNSERV_HOUSEROLE_ERR_NOHOUSE@OTHER: |-
+  Похоже, в настоящее время мы не сможем определить к какой династии относится {username}.
+
+  Повторите попытку чуть позже или свяжитесь с администратором бота.
+DNSERV_HOUSEROLE_ERR_UNKNOWN: |-
+  Упс! Что-то определённо пошло не так, пока мы пытались выполнить ваш запрос.
+
+  Попробуйте вызвать эту команду чуть позже.
+DNSERV_HOUSEROLE_HOUSE_BALANCE: "Balance"
+DNSERV_HOUSEROLE_HOUSE_BRAVERY: "Bravery"
+DNSERV_HOUSEROLE_HOUSE_BRILLIANCE: "Brilliance"
+DNSERV_HOUSEROLE_HOUSE+JOINER: ", "
+DNSERV_HOUSEROLE_ASSIGNED@SELF: |-
+  Вам {rolesCount, plural, =1 {была присвоена роль династии} other {были присвоены роли династий}} {houses}.
+DNSERV_HOUSEROLE_ASSIGNED@OTHER: |-
+  {username} {rolesCount, plural, =1 {была присвоена роль династии} other {были присвоены роли династий}} {houses}.
+DNSERV_HOUSEROLE_DEASSIGN@SELF: |-
+  {rolesCount, plural, =1 {Роль династии {houses} была убрана} other {Роли династий {houses} были убраны}}.
+DNSERV_HOUSEROLE_DEASSIGN@OTHER: |-
+  {rolesCount, plural, =1 {Роль династии {houses} была убрана} other {Роли династий {houses} были убраны}} у {username}.
+DNSERV_HOUSEROLE_UNKNOWN_SUBCMD: "Неизвестная субкоманда. Доступные субкоманды: `assign` и `remove`."
+DNSERV_HOUSEROLE_UNKNOWN_PROPOSE: "Не удалось найти участника, которому вы хотели присвоить роли, пожалуйста, убедитесь, что упомянули пользователя правильно или же используйте его ID."
