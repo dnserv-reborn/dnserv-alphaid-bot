@@ -732,7 +732,7 @@ export class HouseRoles implements IModule<HouseRoles> {
 
 	// #endregion
 
-	public unload(i: ModulePrivateInterface<HouseRoles>) {
+	public async unload(i: ModulePrivateInterface<HouseRoles>) {
 		if (i.baseCheck(this) && !i.isPendingUnload()) {
 			throw new Error(ErrorMessages.NOT_PENDING_UNLOAD);
 		}
