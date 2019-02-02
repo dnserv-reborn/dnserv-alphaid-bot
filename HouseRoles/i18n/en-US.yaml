@@ -8,12 +8,12 @@ DNSERV_HOUSEROLE_ERR_NOHOUSE@SELF: |-
 DNSERV_HOUSEROLE_ERR_NOHOUSE@OTHER: |-
   {username} is not in any of the HypeSquad houses, so weren't assigned a role.
 
-DNSERV_HOUSEROLE_ERR_NOHOUSE@SELF: |-
+DNSERV_HOUSEROLE_ERR_APIERR@SELF: |-
   It seems like we cannot currently determinate which house you belong to.
 
   Try again a bit later or contact the bot administrator.
 
-DNSERV_HOUSEROLE_ERR_NOHOUSE@OTHER: |-
+DNSERV_HOUSEROLE_ERR_APIERR@OTHER: |-
   It seems like we cannot currently determinate which house {username} belongs to.
 
   Try again a bit later or contact the bot administrator.
