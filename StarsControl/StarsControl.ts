@@ -49,6 +49,12 @@ interface IMessageDisqualification {
 	 */
 	authors?: string[];
 	/**
+	 * Which channels this condition works on
+	 * 
+	 * This disables all stars per channel
+	 */
+	channels?: string[];
+	/**
 	 * Conditions against the message content
 	 */
 	content?: ContentDisqualifyCondition;
@@ -282,7 +288,15 @@ export class StarsControl implements IModule<StarsControl> {
 		if (aged != null) {
 			const minsSince = StarsControl._minutesSinceSent(msg);
 
-			if (minsSince < aged) {
+			if (minsSince < aged) return false;
+		}
+
+		const { channels } = disqual;
+
+		if (channels) {
+			const channelId = msg.channel.id;
+
+			if (!channels.includes(channelId)) {
 				return false;
 			}
 		}
@@ -296,9 +310,7 @@ export class StarsControl implements IModule<StarsControl> {
 				)
 			);
 
-			if (!isAuthored) {
-				return false;
-			}
+			if (!isAuthored) return false;
 		}
 
 		const { content } = disqual;
@@ -309,9 +321,7 @@ export class StarsControl implements IModule<StarsControl> {
 				content
 			);
 			
-			if (!isMatches) {
-				return false;
-			}
+			if (!isMatches) return false;
 		}
 
 		return true;
