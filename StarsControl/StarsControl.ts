@@ -5,7 +5,7 @@ import { getMessageMember, getMessageMemberOrAuthor, EmbedType } from "@utils/ut
 import { INullableHashMap, IHashMap } from "@sb-types/Types";
 import { timeDiff } from "@utils/time";
 import * as text from "@utils/text";
-import { UserIdentify, generateLocalizedEmbed, ExtensionAssignUnhandleFunction, extendAndAssign } from "@utils/ez-i18n";
+import { UserIdentify, generateLocalizedEmbed, ExtensionAssignUnhandleFunction, extendAndAssign, localizeForUser } from "@utils/ez-i18n";
 import { IModule } from "@sb-types/ModuleLoader/Interfaces.new";
 import { ModulePrivateInterface } from "@sb-types/ModuleLoader/PrivateInterface";
 import { instant, saveInstant } from "@utils/config";
@@ -62,6 +62,10 @@ interface IMessageDisqualification {
 	 * In minutes, how old message can be to be starred
 	 */
 	aged?: number;
+	/**
+	 * Reason for this disqualification
+	 */
+	reason?: string;
 }
 
 type ContentDisqualifyCondition = ["equal" | "starts" | "ends" | "includes", string];
@@ -78,7 +82,7 @@ export class StarsControl implements IModule<StarsControl> {
 	private _i18nUnhandle?: ExtensionAssignUnhandleFunction;
 
 	private _settings: IStarControlSettings;
-	private _compiledDisqualificationProcess?: AnyOfResult<IAddedReaction>;
+	private _compiledDisqualificationProcess?: AnyOfResult<IAddedReaction, string | boolean>;
 
 	public async init(i: ModulePrivateInterface<StarsControl>) {
 		if (i.baseCheck(this) && !i.isPendingInitialization()) {
@@ -197,17 +201,17 @@ export class StarsControl implements IModule<StarsControl> {
 			return false;
 		}
 
-		const disqualReason = await (
+		const disqualReasons = await (
 			disqualProcess({
 				reaction,
 				user
 			})
 		);
 
-		if (disqualReason) {
+		if (disqualReasons) {
 			StarsControl._log(
 				"info",
-				`Disallow reaction by ${user.tag} on message ${reaction.message.id} because: ${disqualReason}"`
+				`Disallow reaction by ${user.tag} on message ${reaction.message.id} because: ${disqualReasons}"`
 			);
 
 			await StarsControl._removeReaction(reaction, user);
@@ -215,12 +219,23 @@ export class StarsControl implements IModule<StarsControl> {
 			try {
 				const member = guild.members.get(user.id);
 
-				await StarsControl._sendWarning(
-					member || user,
-					disqualReason
-				);
+				const autoReason = disqualReasons[0];
+				const reason = disqualReasons[1];
+
+				if (typeof reason === "string") {
+					await StarsControl._sendReasonedWarning(
+						member || user,
+						autoReason,
+						reason
+					);
+				} else {
+					await StarsControl._sendWarning(
+						member || user,
+						autoReason
+					);
+				}
 			} catch (err) {
-				StarsControl._log("warn", `Cannot send warning (${disqualReason}) to ${user.tag}`);
+				StarsControl._log("warn", `Cannot send warning (${disqualReasons}) to ${user.tag}`);
 			}
 
 			return true;
@@ -256,9 +271,7 @@ export class StarsControl implements IModule<StarsControl> {
 	private async _handleDisqualify(toCheck: IAddedReaction) {
 		const disquals = this._settings.badStars;
 
-		if (!disquals) {
-			return false;
-		}
+		if (!disquals) return false;
 
 		const { reaction } = toCheck;
 
@@ -272,9 +285,7 @@ export class StarsControl implements IModule<StarsControl> {
 				)
 			);
 
-			if (disqualify) {
-				return true;
-			}
+			if (disqualify) return disqual.reason || true;
 		}
 
 		return false;
@@ -464,12 +475,33 @@ export class StarsControl implements IModule<StarsControl> {
 		return users.remove(user);
 	}
 
-	private static async _sendWarning(user: UserIdentify, reason: string) {
+	private static getAutoReasonStr(autoReason: string) {
+		return `DNSERV_STAR_BLOCKED@${autoReason}`;
+	}
+
+	private static async _sendReasonedWarning(user: UserIdentify, autoReason: string, reason: string) {
+		let str = await localizeForUser(user, StarsControl.getAutoReasonStr(autoReason));
+		str += "\n\n";
+
+		str += await localizeForUser(user, "DNSERV_STAR_BLOCKED_REASON", { reason });
+
+		return user.send({
+			embed: await generateLocalizedEmbed(
+				EmbedType.Warning,
+				user, {
+					custom: true,
+					string: str
+				}
+			)
+		});
+	}
+
+	private static async _sendWarning(user: UserIdentify, autoReason: string) {
 		return user.send({
 			embed: await generateLocalizedEmbed(
 				EmbedType.Warning,
 				user,
-				`DNSERV_STAR_BLOCKED@${reason}`
+				StarsControl.getAutoReasonStr(autoReason)
 			)
 		});
 	}
@@ -510,21 +542,31 @@ interface IAddedReaction {
 	user: User;
 }
 
-function calledAnyOf<T>(functions: CalledMap<T>) : AnyOfResult<T> {
-    return async (...args) => {
-        for (const name in functions) {
-            const func = functions[name];
+function calledAnyOf<T, R>(functions: CalledMap<T, R>, how?: (res: R) => boolean) : AnyOfResult<T, R> {
+	return async (...args) => {
+		for (const name in functions) {
+			const func = functions[name];
 
-            if (await func(...args)) {
-                return name;
-            }
-        }
-    };
+			const res = await func(...args);
+
+			if (!how && res) return [name, res];
+			else if (how && how(res)) return [name, res];
+		}
+	};
 }
 
-type CalledMap<T> = IHashMap<AnyOfChecker<T>>;
-type AnyOfChecker<T> = (toCheck: T) => Promise<boolean>;
-type AnyOfResult<T> = (toCheck: T) => Promise<string | undefined>;
+/**
+ * Map with check function
+ */
+type CalledMap<T, R> = IHashMap<AnyOfChecker<T, R>>;
+/**
+ * The function that checks
+ */
+type AnyOfChecker<T, R> = (toCheck: T) => Promise<R>;
+/**
+ * The result of AnyOf function
+ */
+type AnyOfResult<T, R> = (toCheck: T) => Promise<[string, R | undefined] | undefined>;
 
 function regExp(str: string) {
 	const cached = REGEX_CACHE[str];
@@ -534,6 +576,6 @@ function regExp(str: string) {
 	return REGEX_CACHE[str] = new RegExp(str);
 }
 
-type ReactionChecks = IHashMap<AnyOfChecker<IAddedReaction>>;
+type ReactionChecks = IHashMap<AnyOfChecker<IAddedReaction, boolean | string>>;
 
 export default StarsControl;

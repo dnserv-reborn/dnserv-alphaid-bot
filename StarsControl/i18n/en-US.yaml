@@ -6,3 +6,7 @@ DNSERV_STAR_BLOCKED@FILTER: "You've attempted to add star to the message that ou
 
 # Send to user when they attempt to star a message and they are been added to block list
 DNSERV_STAR_BLOCKED@USER-BLOCK: "You've attempted to add star to message, but you've been disallowed from adding stars to messages by the server administrator. If you think it's mistake, try to find and contact the team which can assist you with the question."
+
+# Used in addition to `DNSERV_STAR_BLOCKED@...` if reason of disqualification stated by the host
+# {reason} (string) — reason written by the bot host why message was disqualified
+DNSERV_STAR_BLOCKED_REASON: "Reason: “{reason}.”"
