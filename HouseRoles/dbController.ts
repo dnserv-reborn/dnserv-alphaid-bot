@@ -5,7 +5,7 @@ import * as logger from "loggy";
 
 const DB = getDB();
 
-const DEFAULT_TABLE_NAME = "houseRoles";
+export const DEFAULT_TABLE_NAME = "houseRoles";
 
 const TABLE_NAME = Symbol("tableName");
 const LOCAL_CACHE = Symbol("localCache");
