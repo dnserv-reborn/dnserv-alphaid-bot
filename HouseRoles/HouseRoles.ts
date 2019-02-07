@@ -30,11 +30,11 @@ interface IOptions {
 	/**
 	 * Table name for recent house changes
 	 */
-	recordsTable: string;
+	recordsTable?: string;
 	/**
 	 * Number of secords before house can be changed again
 	 */
-	cooldown: number;
+	cooldown?: number;
 }
 
 type Roles = {
@@ -42,6 +42,8 @@ type Roles = {
 	bravery: string;
 	brilliance: string;
 };
+
+const DEFAULT_COOLDOWN = 1209600;
 
 export class HouseRoles implements IModule<HouseRoles> {
 	private static readonly _log = getLogger("dnSERV: HouseRole");
@@ -76,7 +78,7 @@ export class HouseRoles implements IModule<HouseRoles> {
 				},
 				token: "PUT THE DISCORD ACCOUNT TOKEN HERE",
 				recordsTable: DEFAULT_TABLE_NAME,
-				cooldown: 1209600 // 14 days
+				cooldown: DEFAULT_COOLDOWN // 14 days
 			});
 
 			HouseRoles._log("err", `No configuration found. An example config created at ${cfgPath}, please replace needed values before starting bot again`);
@@ -85,7 +87,8 @@ export class HouseRoles implements IModule<HouseRoles> {
 		}
 
 		// Checking the config
-		const { token, guildId, recordsTable, cooldown } = cfg;
+		const { token, guildId } = cfg;
+		let { cooldown, recordsTable } = cfg;
 
 		if (!token) {
 			throw new Error("No token provided. User token required to fetch person's houses");
@@ -96,10 +99,14 @@ export class HouseRoles implements IModule<HouseRoles> {
 
 		this._guildId = guildId;
 
-		// Host must provide cooldown and records table name
-		if (!recordsTable) throw new Error("Table name for house changes records must be provided");
+		// Optional table name in the config
+		if (!recordsTable) recordsTable = DEFAULT_TABLE_NAME;
 
-		if (cooldown == null || cooldown < 0) throw new Error("Cooldown cannot be less than zero");
+		// Optional cooldown in the config
+		// TODO: must it be disabled at all if not provided?
+		if (cooldown == null) cooldown = DEFAULT_COOLDOWN;
+
+		if (cooldown < 0) throw new Error("Cooldown cannot be less than zero");
 
 		this._cooldown = cooldown;
 
