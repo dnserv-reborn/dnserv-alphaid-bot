@@ -24,6 +24,9 @@ DNSERV_HOUSEROLE_ERR_NOROLES@SELF: |-
 DNSERV_HOUSEROLE_ERR_NOROLES@OTHER: |-
   {username} already doesn't have any HypeSquad house roles.
 
+DNSERV_HOULEROLE_ERR_CHANGEDRECENTLY: |-
+  You have changed your house role recently. Please wait some time before changing the house role again.
+
 DNSERV_HOUSEROLE_ERR_UNKNOWN: |-
   Oops! Something definitely gone wrong while we tried to process your request.
   

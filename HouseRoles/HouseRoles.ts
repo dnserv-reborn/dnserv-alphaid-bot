@@ -8,6 +8,7 @@ import { MessagesFlows, IPublicFlowCommand, IMessageFlowContext } from "@cogs/co
 import { extendAndAssign, generateLocalizedEmbed, localizeForGuild, localizeForUser } from "@utils/ez-i18n";
 import { ModulePrivateInterface } from "@sb-types/ModuleLoader/PrivateInterface";
 import * as config from "@utils/config";
+import { HouseRolesDBController, DEFAULT_TABLE_NAME } from "./dbController";
 
 interface IOptions {
 	/**
@@ -26,6 +27,14 @@ interface IOptions {
 	 * Roles for houses
 	 */
 	roles: Partial<Roles>;
+	/**
+	 * Table name for recent house changes
+	 */
+	recordsTable: string;
+	/**
+	 * Number of secords before house can be changed again
+	 */
+	cooldown: number;
 }
 
 type Roles = {
@@ -44,6 +53,8 @@ export class HouseRoles implements IModule<HouseRoles> {
 	private _unloaded = false;
 	private _flowHandler?: IPublicFlowCommand;
 	private _i18nUnhandle: () => string[];
+	private _dbController: HouseRolesDBController;
+	private _cooldown: number;
 
 	public async init(i: ModulePrivateInterface<HouseRoles>) {
 		if (i.baseCheck(this) && !i.isPendingInitialization()) {
@@ -63,7 +74,9 @@ export class HouseRoles implements IModule<HouseRoles> {
 					bravery: "ID FOR BRAVERY ROLE",
 					brilliance: "ID FOR BRILLIANCE ROLE"
 				},
-				token: "PUT THE DISCORD ACCOUNT TOKEN HERE"
+				token: "PUT THE DISCORD ACCOUNT TOKEN HERE",
+				recordsTable: DEFAULT_TABLE_NAME,
+				cooldown: 1209600 // 14 days
 			});
 
 			HouseRoles._log("err", `No configuration found. An example config created at ${cfgPath}, please replace needed values before starting bot again`);
@@ -72,17 +85,25 @@ export class HouseRoles implements IModule<HouseRoles> {
 		}
 
 		// Checking the config
-		const { token, guildId } = cfg;
+		const { token, guildId, recordsTable, cooldown } = cfg;
 
 		if (!token) {
 			throw new Error("No token provided. User token required to fetch person's houses");
 		}
 
-		// Check if the guild provided and valid
+		// Check if the guild provided
 		if (!guildId) throw new Error(`No guild ID provided`);
 
 		this._guildId = guildId;
 
+		// Host must provide cooldown and records table name
+		if (!recordsTable) throw new Error("Table name for house changes records must be provided");
+
+		if (cooldown == null || cooldown < 0) throw new Error("Cooldown cannot be less than zero");
+
+		this._cooldown = cooldown;
+
+		// Good, let's search for the guild
 		const guild = $discordBot.guilds.get(guildId);
 
 		if (!guild) {
@@ -90,11 +111,11 @@ export class HouseRoles implements IModule<HouseRoles> {
 				HouseRoles._log(
 					"warn",
 					`Guild ${guildId} is not present on this shard`
-					);
-					
-					return;
+				);
+
+				return;
 			}
-			
+
 			throw new Error(`Guild "${guildId}" not found`);
 		}
 
@@ -103,6 +124,11 @@ export class HouseRoles implements IModule<HouseRoles> {
 
 		this._userToken = token;
 
+		// Okay, let's initialize the database before heavy actions
+		this._dbController = new HouseRolesDBController(recordsTable);
+
+		await this._dbController.init();
+
 		// Now checking the roles
 		const { roles } = cfg;
 
@@ -110,11 +136,11 @@ export class HouseRoles implements IModule<HouseRoles> {
 
 		for (let i = 0, l = HOUSE_ROLES.length; i < l; i++) {
 			const houseName = HOUSE_ROLES[i];
-			
+
 			const houseRole = roles[houseName];
-			
+
 			if (!houseRole) throw new Error(`No role set for "${houseName}"`);
-			
+
 			if (!guild.roles.has(houseRole)) {
 				throw new Error(`Role "${houseRole}" cannot be found on "${guildId}"`);
 			}
@@ -215,6 +241,18 @@ export class HouseRoles implements IModule<HouseRoles> {
 
 		if (!sender) { return; }
 
+		const record = await this._dbController.getRecord(sender);
+
+		if (record && ((Date.now() - record.when) / 1000) <= this._cooldown) {
+			return msg.channel.send({
+				embed: generateLocalizedEmbed(
+					EmbedType.Error,
+					sender,
+					"DNSERV_HOULEROLE_ERR_CHANGEDRECENTLY"
+				)
+			});
+		}
+
 		let assignResult: AssignResult;
 
 		try {
@@ -225,6 +263,8 @@ export class HouseRoles implements IModule<HouseRoles> {
 				err, "self"
 			);
 		}
+
+		await this._dbController.recordChange(sender, assignResult[2]);
 
 		const currentHouses = assignResult[1];
 
@@ -562,16 +602,18 @@ export class HouseRoles implements IModule<HouseRoles> {
 
 		// Check member's roles
 
-		const mRoles = this._memberHavesRoles(member);
+		const memberRoles = this._memberHasRoles(member);
 
 		// Fetch their houses
 
-		const mHouses = await HouseRoles._checkHouse(
+		const fetchResult = await HouseRoles._checkHouse(
 			member.id, this._userToken
 		);
 
-		if (mRoles.length === 0 && mHouses.length === 0) {
-			return [changes, null];
+		const memberHouses = fetchResult[0];
+
+		if (memberRoles.length === 0 && memberHouses.length === 0) {
+			return [changes, null, fetchResult[1]];
 		}
 
 		const houseRoles = this._houseRoles;
@@ -579,8 +621,8 @@ export class HouseRoles implements IModule<HouseRoles> {
 		for (let i = 0, l = HOUSE_ROLES.length; i < l; i++) {
 			const house = HOUSE_ROLES[i];
 
-			const hasRole = mRoles.includes(house);
-			const inHouse = mHouses.includes(house);
+			const hasRole = memberRoles.includes(house);
+			const inHouse = memberHouses.includes(house);
 
 			if (
 				hasRole === inHouse
@@ -613,7 +655,7 @@ export class HouseRoles implements IModule<HouseRoles> {
 			}
 		}
 
-		return [changes, mHouses];
+		return [changes, memberHouses, fetchResult[1]];
 	}
 
 	/**
@@ -648,7 +690,7 @@ export class HouseRoles implements IModule<HouseRoles> {
 		return removedHouses.length === 0 ? null : removedHouses;
 	}
 
-	private _memberHavesRoles(member: GuildMember) {
+	private _memberHasRoles(member: GuildMember) {
 		const set: House[] = [];
 
 		const houseRoles = this._houseRoles;
@@ -685,14 +727,14 @@ export class HouseRoles implements IModule<HouseRoles> {
 
 		for (let i = 0, l = guilds.length; i < l; i++) {
 			const guild = guilds[i];
-		
+
 			if (guild.id === guildId) return true;
 		}
 
 		throw new Error(`Cannot find guild "${guildId}" using the user account`);
 	}
 
-	private static async _checkHouse(userId: string, token: string) {
+	private static async _checkHouse(userId: string, token: string) : Promise<CheckResult> {
 		// https://discordapp.com/api/v6/users/${userId}/profile
 
 		const profile = await fetch(
@@ -714,20 +756,24 @@ export class HouseRoles implements IModule<HouseRoles> {
 		const { flags } = profile.user;
 
 		const houses: House[] = [];
+		let houleFlags = 0;
 
 		if (hasFlag(flags, DiscordHouse.BALANCE)) {
+			houleFlags |= DiscordHouse.BALANCE;
 			houses.push("balance");
 		}
 
 		if (hasFlag(flags, DiscordHouse.BRAVERY)) {
+			houleFlags |= DiscordHouse.BRAVERY;
 			houses.push("bravery");
 		}
 
 		if (hasFlag(flags, DiscordHouse.BRILLIANCE)) {
+			houleFlags |= DiscordHouse.BRILLIANCE;
 			houses.push("brilliance");
 		}
 
-		return houses;
+		return [houses, houleFlags];
 	}
 
 	// #endregion
@@ -770,7 +816,8 @@ export const enum DiscordHouse {
 }
 
 type DeassignResult = House[] | null;
-type AssignResult = [boolean, House[] | null];
+type AssignResult = [boolean, House[] | null, number];
+type CheckResult = [House[], number];
 
 class HousesFetchError extends Error { }
 class GuildsFetchError extends Error { }
