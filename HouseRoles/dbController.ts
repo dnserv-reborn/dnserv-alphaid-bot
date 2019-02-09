@@ -58,8 +58,8 @@ export class HouseRolesDBController {
 			await DB.schema.createTable(tableName, (tb) => {
 				tb.string("guildId").notNullable();
 				tb.string("memberId").notNullable();
+				tb.timestamp("when").notNullable();
 				tb.integer("flags").notNullable();
-				tb.integer("when").notNullable();
 			});
 		}
 
@@ -80,7 +80,7 @@ export class HouseRolesDBController {
 		const newRecord = {
 			guildId: member.guild.id,
 			memberId: member.id,
-			when: Date.now(),
+			when: Math.trunc(Date.now() / 1000),
 			flags
 		};
 

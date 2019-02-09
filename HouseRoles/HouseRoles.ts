@@ -250,9 +250,9 @@ export class HouseRoles implements IModule<HouseRoles> {
 
 		const record = await this._dbController.getRecord(sender);
 
-		if (record && ((Date.now() - record.when) / 1000) <= this._cooldown) {
+		if (record && ((Date.now() / 1000) - record.when) <= this._cooldown) {
 			return msg.channel.send({
-				embed: generateLocalizedEmbed(
+				embed: await generateLocalizedEmbed(
 					EmbedType.Error,
 					sender,
 					"DNSERV_HOULEROLE_ERR_CHANGEDRECENTLY"
