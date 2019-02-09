@@ -118,6 +118,8 @@ export class HouseRolesDBController {
 		if (!remoteValue) return;
 
 		this[LOCAL_CACHE][localKey] = remoteValue;
+
+		return remoteValue;
 	}
 }
 
